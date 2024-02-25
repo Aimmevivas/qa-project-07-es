@@ -15,7 +15,7 @@ Asegurarse tener instalados los siguientes requisitos:
  Pasos a seguir:
 
 1. Instala pip install selenium
-2. Clona el repositorio del proyecto (https://github.com/Aimmevivas/qa-project-07-es.git)
+2. Clona el repositorio del proyecto (https://github.com/Aimmevivas/qa-project-07-es)
 
 Archivos Principales
 - data.py:
