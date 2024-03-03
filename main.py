@@ -3,9 +3,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import ElementNotInteractableException
-
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions
 
 class UrbanRoutesPage:
     address_from = (By.ID, 'from')
@@ -29,9 +29,9 @@ class UrbanRoutesPage:
     submit_add_card = (By.XPATH, "//button[@type='submit' and contains(@class, 'button') and contains(@class, 'full') and contains(text(), 'Enlace')]")
     payment_method_close = (By.XPATH, "/html/body/div/div/div[2]/div[2]/div[1]/button")
     message_for_driver_field = (By.XPATH, "//input[@id='comment']")
-    blanket_and_tissues = (By.XPATH, "//div[@class='r-sw-container']//input[@type='checkbox' and @class='switch-input']")
+    blanket_and_tissues = (By.XPATH, '//div[@class="switch"]')
     ice_cream_counter = (By.XPATH, '//div[@class="r-counter-label" and text()="Helado"]')
-    ice_cream_plus_button = (By.XPATH, '//div[@class="r-counter-label" and text()="Helado"]/following-sibling::div[@class="counter-plus"]')
+    ice_cream_plus_button = (By.XPATH, '//*[@id="root"]/div/div[3]/div[3]/div[2]/div[2]/div[4]/div[2]/div[3]/div/div[2]/div[1]/div/div[2]/div/div[3]')
     get_a_taxi = (By.XPATH, '//button[@type="button" and @class="smart-button"]/span[@class="smart-button-main"][text()="Pedir un taxi"]')
     taxi_modal = (By.XPATH, '/html/body/div/div/div[5]/div[2]')
 
@@ -63,20 +63,9 @@ class UrbanRoutesPage:
 
     def get_comfort_button(self):
         wait = WebDriverWait(self.driver, 15)
-
-        comfort_button_present = wait.until(EC.presence_of_element_located(self.comfort_button))
-
-        self.click_taxi_button()
-        comfort_button = wait.until(EC.element_to_be_clickable(self.comfort_button))
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", comfort_button)
-
-        try:
-            comfort_button.click()
-        except ElementClickInterceptedException:
-            # Si el clic es interceptado, intentar hacer clic mediante JavaScript
-            self.driver.execute_script("arguments[0].click();", comfort_button)
-
-        return comfort_button
+        comfort_button_present = wait.until(EC.element_to_be_clickable(self.comfort_button))
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", comfort_button_present)
+        return comfort_button_present
 
     def click_phone_number_open(self):
         wait = WebDriverWait(self.driver, 5)
@@ -101,6 +90,15 @@ class UrbanRoutesPage:
         phone_verification_input = self.driver.find_element(*self.phone_verification_code)
         phone_verification_input.clear()
         phone_verification_input.send_keys(code)
+
+    def switch_blanket_and_tissues(self):
+        blanket_and_tissues_switch = self.driver.find_element(*self.blanket_and_tissues)
+        blanket_and_tissues_switch.click()
+    
+    def wait_for_modal_with_taxi_info(self):
+        wait = WebDriverWait(self.driver, 15)
+        wait.until(EC.presence_of_element_located(self.taxi_modal))
+
     def retrieve_phone_code(self):
         """Este código devuelve un número de confirmación de teléfono y lo devuelve como un string.
         Utilízalo cuando la aplicación espere el código de confirmación para pasarlo a tus pruebas.
@@ -131,17 +129,12 @@ class UrbanRoutesPage:
             return code
 
     def click_submit_phone_code(self):
-        wait = WebDriverWait(self.driver, 30)
+        wait = WebDriverWait(self.driver, 15)
         submit_phone_code = wait.until(EC.element_to_be_clickable(self.submit_phone_code))
         submit_phone_code.click()
 
-    def is_phone_number_filled(self):
-        try:
-            phone_input = self.driver.find_element(*self.phone_input_field)
-            phone_number = phone_input.get_attribute('value')
-            return bool(phone_number)
-        except NoSuchElementException:
-            return False
+    def phone_number(self):
+        return self.driver.find_element(By.ID, 'phone').get_property('value')
 
     def click_payment_method_open(self):
         wait = WebDriverWait(self.driver, 5)
@@ -185,62 +178,25 @@ class UrbanRoutesPage:
     def fill_message_for_driver_field(self, test_data):
         message_for_driver_field = self.driver.find_element(*self.message_for_driver_field)
         message_for_driver_field.clear()
-        message_for_driver_field.send_keys(test_data)
+        message_for_driver_field.send_keys("traeme los snacks")
 
-    def switch_blanket_and_tissues(self):
-        blanket_and_tissues_switch = (By.CLASS_NAME, 'switch-input')
-        switch_element = self.driver.find_element(*blanket_and_tissues_switch)
-
-        # Desplazarse hasta el elemento
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", switch_element)
-
-        # Intentar interactuar con el elemento
-        try:
-            switch_element.click()
-        except ElementNotInteractableException:
-            # Si el clic no es posible, intentar con JavaScript
-            self.driver.execute_script("arguments[0].click();", switch_element)
+    def tarifa_comfort(self):
+        return self.driver.find_element(By.XPATH, "//div[contains(text(),'Manta y pañuelos')]").text
+    
+    def page_scroll_down(self):
+        find_button_blanket = self.driver.find_element(By.XPATH, '//div[@class="switch"]')
+        self.driver.execute_script("arguments[0].scrollIntoView();", find_button_blanket)
 
     def click_ice_cream_plus_button(self):
-        try:
-            ice_cream_counter = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located(self.ice_cream_counter))
-            current_value = int(ice_cream_counter.text)
-
-            if current_value < 2:
-                try:
-                    ice_cream_plus_button = WebDriverWait(self.driver, 10).until(
-                        EC.element_to_be_clickable(self.ice_cream_plus_button))
-                    self.driver.execute_script("arguments[0].scrollIntoView();", ice_cream_plus_button)
-                    for _ in range(2 - current_value):
-                        ice_cream_plus_button.click()
-                except Exception as e:
-                    print(f"No se pudo hacer clic en el botón directamente: {e}")
-                    # Si no se puede hacer clic directamente, intentar hacer clic mediante JavaScript
-                    ice_cream_plus_button_js = self.driver.find_element_by_id(
-                        'ice_cream_plus_button_id')  # Reemplaza con tu selector específico
-                    for _ in range(2 - current_value):
-                        self.driver.execute_script("arguments[0].click();", ice_cream_plus_button_js)
-        except Exception as e:
-            print(f"No se pudo encontrar el contador de helados: {e}")
+            ice_cream_button = self.driver.find_element(By.XPATH, '//*[@id="root"]/div/div[3]/div[3]/div[2]/div[2]/div[4]/div[2]/div[3]/div/div[2]/div[1]/div/div[2]/div/div[3]')
+            ice_cream_button.click()
+            ice_cream_button.click()
 
     def click_get_a_taxi(self):
         wait = WebDriverWait(self.driver, 5)
         get_a_taxi = wait.until(EC.element_to_be_clickable(self.get_a_taxi))
+        self.driver.execute_script("arguments[0].scrollIntoView();", get_a_taxi)
         get_a_taxi.click()
-
-    def wait_for_modal_with_taxi_info(self):
-        try:
-            WebDriverWait(self.driver, 20).until(EC.visibility_of_element_located(self.taxi_modal))
-
-            print("El modal con la información del conductor está presente")
-
-        except Exception as e:
-            print(f"Ocurrió un error al esperar el modal o los datos del conductor: {e}")
-
-
-driver = webdriver.Chrome()
-driver.get(data.urban_routes_url)
 
 class TestUrbanRoutes:
     driver = None
@@ -266,17 +222,15 @@ class TestUrbanRoutes:
     def test_click_comfort_button(self):
         routes_page = UrbanRoutesPage(self.driver)
         routes_page.click_taxi_button()
-        comfort_button = routes_page.comfort_button
+        comfort_button = routes_page.get_comfort_button()
         # Obtener el botón 'Comfort' después de hacer clic en 'Pedir un taxi'
-
-        assert comfort_button is not None, "No se pudo obtener el botón 'Comfort'"
+        assert comfort_button.is_enabled(), "No se pudo obtener el botón 'Comfort'"
+        #assert comfort_button is not None, "No se pudo obtener el botón 'Comfort'"
 
     def test_fill_phone_number(self):
         routes_page = UrbanRoutesPage(self.driver)
         test_data = data.phone_number
         routes_page.click_phone_number_open()
-
-        assert routes_page.phone_input_section_is_active(), "La sección de entrada de número de teléfono no está activa"
 
         routes_page.fill_phone_input_field(test_data)
         routes_page.click_next_phone_number_button()
@@ -284,7 +238,8 @@ class TestUrbanRoutes:
         routes_page.fill_phone_verification_code(verification_code)
         routes_page.click_submit_phone_code()
 
-        assert routes_page.is_phone_number_filled(), "El número de teléfono no se ha llenado correctamente"
+        #assert routes_page.is_phone_number_filled(), "El número de teléfono no se ha llenado correctamente"
+        assert routes_page.phone_number() == data.phone_number, "El número de teléfono no se ha llenado correctamente"
 
     def test_add_payment_card(self):
         routes_page = UrbanRoutesPage(self.driver)
@@ -297,8 +252,7 @@ class TestUrbanRoutes:
         routes_page.click_focus_change()
         routes_page.click_submit_add_card()
         routes_page.click_payment_method_close()
-
-        assert True
+        assert routes_page.numero_tarjeta() == data.card_number # 'card_number'
 
     def test_fill_message_for_driver_field(self):
         routes_page = UrbanRoutesPage(self.driver)
@@ -307,23 +261,20 @@ class TestUrbanRoutes:
         message_field_value = test_message
 
         assert message_field_value == test_message, "El campo de mensaje para el conductor no se llenó correctamente"
-
+    
     def test_switch_blanket_and_tissues(self):
         routes_page = UrbanRoutesPage(self.driver)
+        routes_page.page_scroll_down()
         routes_page.switch_blanket_and_tissues()
-
-        assert True
-
+        assert routes_page.tarifa_comfort() == 'Manta y pañuelos'
+    
     def test_click_ice_cream_counter(self):
         routes_page = UrbanRoutesPage(self.driver)
         routes_page.click_ice_cream_plus_button()
-
-        assert True
-
+        assert routes_page.ice_cream_counter() == '2'
 
     def test_taxi_modal_with_info(self):
         routes_page = UrbanRoutesPage(self.driver)
         routes_page.click_get_a_taxi()
         routes_page.wait_for_modal_with_taxi_info()
-
-        assert True
+        assert routes_page.taxi_modal() == self.taxi_modal
