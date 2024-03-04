@@ -11,6 +11,7 @@ Asegurarse tener instalados los siguientes requisitos:
 - Python (última versión)
 - Selenium
 - WebDriver para Chrome o navegador a utilizar, en nuestro caso utilizaremos Chrome
+- comsndo a utilizar pytest folder/de/proyecto
 
  Pasos a seguir:
 
